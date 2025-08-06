@@ -1,0 +1,9 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+aiosmtplib==3.0.1
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+email-validator==2.1.0
+# celery==5.3.4  # Uncomment when ready to use async task processing
+# redis==5.0.1    # Uncomment when using Celery 
