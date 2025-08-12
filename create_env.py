@@ -13,6 +13,11 @@ SMTP_PASS=tu-api-key-brevo
 EMAIL_FROM=notebook.sayamito@gmail.com
 SMTP_VALIDATE_CERTS=false
 
+# WhatsApp Configuration
+WHATSAPP_TOKEN=tu-token-de-whatsapp
+WHATSAPP_URL=678458352026625
+MY_NUMBER=573125153910
+
 # Application Configuration
 APP_NAME=API-MSJ
 APP_VERSION=1.0.0
@@ -24,6 +29,7 @@ DEBUG=True
             f.write(env_content)
         print("✅ Archivo .env creado exitosamente con codificación UTF-8")
         print("📝 Recuerda reemplazar 'tu-api-key-brevo' con tu API key real")
+        print("📱 Recuerda reemplazar 'tu-token-de-whatsapp' con tu token real de WhatsApp")
         return True
     except Exception as e:
         print(f"❌ Error creando .env: {e}")

@@ -17,7 +17,12 @@ class Settings(BaseSettings):
     smtp_user: str
     smtp_pass: str
     email_from: str
-    smtp_validate_certs: bool = True  # SSL certificate validation
+    smtp_validate_certs: bool = True
+    
+    # WhatsApp Configuration
+    whatsapp_token: str
+    whatsapp_url: str
+    my_number: str
     
     # Optional Celery Configuration
     celery_broker_url: Optional[str] = None
@@ -26,6 +31,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra environment variables
 
 
 # Global settings instance

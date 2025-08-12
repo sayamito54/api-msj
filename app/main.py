@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import time
 
 from app.config import settings
-from app.routers import email
+from app.routers import email, whatsapp
 
 # Configure logging
 logging.basicConfig(
@@ -76,6 +76,7 @@ async def health_check():
 
 # Include routers
 app.include_router(email.router)
+app.include_router(whatsapp.router)
 
 
 if __name__ == "__main__":
