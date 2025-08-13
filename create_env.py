@@ -16,7 +16,6 @@ SMTP_VALIDATE_CERTS=false
 # WhatsApp Configuration
 WHATSAPP_TOKEN=tu-token-de-whatsapp
 WHATSAPP_URL=678458352026625
-MY_NUMBER=573125153910
 
 # Application Configuration
 APP_NAME=API-MSJ
