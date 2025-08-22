@@ -15,7 +15,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
@@ -39,7 +39,7 @@ jobs:
         tar -czf staging-deployment.tar.gz .
         
     - name: Upload staging package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: staging-package
         path: staging-deployment.tar.gz
