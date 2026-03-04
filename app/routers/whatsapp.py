@@ -13,6 +13,13 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
 @router.post("/send-whatsapp", response_model=WhatsAppResponse)
 async def send_whatsapp(request: WhatsAppRequest):
+    # Verificar si WhatsApp está activado
+    if not settings.activar_whatsapp:
+        return WhatsAppResponse(
+            success=False,
+            message="La funcionalidad de whatsapp esta desactivada"
+        )
+    
     try:
         # Use v22.0 as per the working documentation
         url = f"https://graph.facebook.com/v22.0/{settings.whatsapp_url}/messages"
@@ -104,6 +111,14 @@ async def whatsapp_health_check():
     """
     Health check endpoint for WhatsApp service.
     """
+    # Verificar si WhatsApp está activado
+    if not settings.activar_whatsapp:
+        return {
+            "status": "disabled",
+            "service": "whatsapp",
+            "message": "La funcionalidad de whatsapp esta desactivada"
+        }
+    
     try:
         return {
             "status": "healthy",

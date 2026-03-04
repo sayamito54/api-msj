@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # WhatsApp Configuration
     whatsapp_token: str
     whatsapp_url: str
+    activar_whatsapp: bool = True
     
     # Optional Celery Configuration
     celery_broker_url: Optional[str] = None

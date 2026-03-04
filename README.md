@@ -41,13 +41,16 @@ api-msj/
 
 ```bash
 # Crear entorno virtual
-python -m venv venv
+python -m venv venv-api-msj
 
 # Activar entorno virtual
 # Windows:
-venv\Scripts\activate
+venv-api-msj\Scripts\activate
 # Linux/Mac:
-source venv/bin/activate
+source venv-api-msj/bin/activate
+
+# Desactivar entorno virtual
+deactivate
 
 # Instalar dependencias
 pip install -r requirements.txt
@@ -88,7 +91,7 @@ DEBUG=True
 
 ```bash
 # Ejecutar con uvicorn
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 9000
 
 # O ejecutar directamente
 python -m app.main
