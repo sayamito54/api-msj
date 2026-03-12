@@ -1,8 +1,10 @@
 import logging
+import time
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import time
+from fastapi.openapi.utils import get_openapi
 
 from app.config import settings
 from app.routers import email, whatsapp
@@ -14,13 +16,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
+# Docs only when enabled (disable in production via ENABLE_OPENAPI_DOCS=false)
+docs_url = "/docs" if settings.enable_openapi_docs else None
+redoc_url = "/redoc" if settings.enable_openapi_docs else None
+openapi_url = "/openapi.json" if settings.enable_openapi_docs else None
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Microservicio para envío de notificaciones (email, WhatsApp, SMS)",
-    docs_url="/docs",
-    redoc_url="/redoc"
+    description="Microservicio de mensajería/correo. Autenticación servicio a servicio por API Key (header X-API-Key o Authorization: Bearer). Solo es llamado por la API principal (api_ofertame) u otros backends de confianza.",
+    docs_url=docs_url,
+    redoc_url=redoc_url,
+    openapi_url=openapi_url,
+    openapi_tags=[
+        {"name": "email", "description": "Envío de correos electrónicos"},
+        {"name": "whatsapp", "description": "Envío de mensajes WhatsApp"},
+    ],
+    contact={"name": "API Ofertame", "url": "", "email": ""},
 )
 
 # Add CORS middleware
@@ -45,7 +57,7 @@ async def add_process_time_header(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Global exception handler."""
+    """Global exception handler. Returns 500 with standard error shape."""
     logger.error(f"Unhandled exception: {str(exc)}")
     return JSONResponse(
         status_code=500,
@@ -54,19 +66,20 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 @app.get("/")
-async def root():
-    """Root endpoint with service information."""
+def root():
+    """Root endpoint: welcome message, API prefix and version (no auth required)."""
     return {
-        "service": settings.app_name,
+        "message": "API-MSJ: microservicio de mensajería. Use la base URL con prefijo /api/v1 y envíe el header de API Key en cada petición.",
+        "api_v1": "/api/v1",
         "version": settings.app_version,
+        "service": settings.app_name,
         "status": "running",
-        "docs": "/docs"
     }
 
 
 @app.get("/health")
-async def health_check():
-    """Global health check endpoint."""
+def health_check():
+    """Global health check endpoint (no auth required)."""
     return {
         "status": "healthy",
         "service": settings.app_name,
@@ -74,9 +87,42 @@ async def health_check():
     }
 
 
-# Include routers
-app.include_router(email.router)
-app.include_router(whatsapp.router)
+# Include routers under /api/v1
+app.include_router(email.router, prefix="/api/v1")
+app.include_router(whatsapp.router, prefix="/api/v1")
+
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+    )
+    # Document API Key security: X-API-Key or Bearer
+    openapi_schema["components"]["securitySchemes"] = {
+        "ApiKeyHeader": {
+            "type": "apiKey",
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "Clave compartida (API_MSJ_SECRET). Alternativa: Authorization: Bearer <api_key>",
+        },
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "API Key",
+            "description": "Use el mismo valor que API_MSJ_SECRET",
+        },
+    }
+    openapi_schema["security"] = [{"ApiKeyHeader": []}, {"BearerAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 if __name__ == "__main__":
@@ -86,4 +132,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=settings.debug
-    ) 
+    )

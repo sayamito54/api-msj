@@ -2,16 +2,30 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 import logging
 
+from app.auth import verify_api_key
 from app.schemas.email_schema import EmailRequest, EmailResponse, EmailStatus
+from app.schemas.error_schemas import ErrorDetail
 from app.services.email_service import email_service
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/email", tags=["email"])
 
+COMMON_RESPONSES = {
+    401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+    500: {"model": ErrorDetail, "description": "Internal server error"},
+}
 
-@router.post("/send", response_model=EmailResponse)
-async def send_email(email_request: EmailRequest):
+
+@router.post(
+    "/send",
+    response_model=EmailResponse,
+    responses={400: {"model": ErrorDetail, "description": "Bad Request"}, **COMMON_RESPONSES},
+)
+async def send_email(
+    email_request: EmailRequest,
+    _: None = Depends(verify_api_key),
+):
     """
     Send a single email.
     
@@ -42,8 +56,15 @@ async def send_email(email_request: EmailRequest):
         )
 
 
-@router.post("/send-bulk", response_model=List[EmailResponse])
-async def send_bulk_emails(email_requests: List[EmailRequest]):
+@router.post(
+    "/send-bulk",
+    response_model=List[EmailResponse],
+    responses={400: {"model": ErrorDetail, "description": "Bad Request"}, **COMMON_RESPONSES},
+)
+async def send_bulk_emails(
+    email_requests: List[EmailRequest],
+    _: None = Depends(verify_api_key),
+):
     """
     Send multiple emails concurrently.
     

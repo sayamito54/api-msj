@@ -1,18 +1,32 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import urllib.request
 import urllib.parse
 import json
 import logging
 import os
-from app.schemas.whatsapp_schema import WhatsAppRequest, WhatsAppResponse
+from app.auth import verify_api_key
 from app.config import settings
+from app.schemas.whatsapp_schema import WhatsAppRequest, WhatsAppResponse
+from app.schemas.error_schemas import ErrorDetail
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
-@router.post("/send-whatsapp", response_model=WhatsAppResponse)
-async def send_whatsapp(request: WhatsAppRequest):
+COMMON_RESPONSES = {
+    401: {"model": ErrorDetail, "description": "Invalid or missing API Key"},
+    500: {"model": ErrorDetail, "description": "Internal server error"},
+}
+
+@router.post(
+    "/send-whatsapp",
+    response_model=WhatsAppResponse,
+    responses=COMMON_RESPONSES,
+)
+async def send_whatsapp(
+    request: WhatsAppRequest,
+    _: None = Depends(verify_api_key),
+):
     # Verificar si WhatsApp está activado
     if not settings.activar_whatsapp:
         return WhatsAppResponse(

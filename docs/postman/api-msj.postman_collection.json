@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "API-MSJ",
+    "description": "Microservicio de mensajería. Autenticación servicio a servicio por API Key (X-API-Key o Authorization: Bearer). Base URL debe incluir /api/v1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "api_key", "value": "tu-clave-secreta-compartida" }
+  ],
+  "item": [
+    {
+      "name": "Raíz y health (sin auth)",
+      "item": [
+        {
+          "name": "GET / (raíz)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/"
+          }
+        },
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Email",
+      "item": [
+        {
+          "name": "POST /api/v1/email/send",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": [\"destinatario@ejemplo.com\"],\n  \"subject\": \"Asunto\",\n  \"body\": \"Contenido del correo\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/email/send"
+          }
+        },
+        {
+          "name": "POST /api/v1/email/send-bulk",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"to\": [\"dest1@ejemplo.com\"],\n    \"subject\": \"Email 1\",\n    \"body\": \"Contenido 1\"\n  },\n  {\n    \"to\": [\"dest2@ejemplo.com\"],\n    \"subject\": \"Email 2\",\n    \"body\": \"Contenido 2\"\n  }\n]"
+            },
+            "url": "{{base_url}}/api/v1/email/send-bulk"
+          }
+        },
+        {
+          "name": "GET /api/v1/email/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/email/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "item": [
+        {
+          "name": "POST /api/v1/whatsapp/send-whatsapp",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-API-Key", "value": "{{api_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"573001234567\",\n  \"mensaje\": \"Texto del mensaje\"\n}"
+            },
+            "url": "{{base_url}}/api/v1/whatsapp/send-whatsapp"
+          }
+        },
+        {
+          "name": "GET /api/v1/whatsapp/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/whatsapp/health"
+          }
+        }
+      ]
+    }
+  ]
+}

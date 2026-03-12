@@ -1,15 +1,17 @@
 # API-MSJ - Microservicio de Notificaciones
 
-Microservicio desarrollado con **FastAPI** para el envío de notificaciones por diferentes canales (email, WhatsApp, SMS).
+Microservicio desarrollado con **FastAPI** para el envío de notificaciones por diferentes canales (email, WhatsApp, SMS). Pensado para ser consumido por la API principal (api_ofertame) u otros backends de confianza; **no hay login de usuarios**: la autenticación es **servicio a servicio por API Key**.
 
 ## 🚀 Características
 
 - **FastAPI** como framework principal
+- **Autenticación por API Key:** header `X-API-Key` o `Authorization: Bearer <api_key>`
+- **Versionado de API:** todos los endpoints bajo `/api/v1`
 - **aiosmtplib** para envío asíncrono de correos
 - **Pydantic** para validación de datos
-- Configuración mediante variables de entorno
-- Arquitectura por capas (routers, services, schemas)
-- Documentación automática con Swagger/OpenAPI
+- Configuración mediante variables de entorno (pydantic-settings)
+- Arquitectura por capas (routers, services, schemas, auth)
+- Documentación OpenAPI (Swagger/ReDoc) activable/desactivable en producción
 - Preparado para integración con Celery (opcional)
 
 ## 📁 Estructura del Proyecto
@@ -20,103 +22,132 @@ api-msj/
 │   ├── __init__.py
 │   ├── main.py              # Aplicación principal FastAPI
 │   ├── config.py            # Configuración y variables de entorno
+│   ├── auth.py              # Verificación API Key (servicio a servicio)
 │   ├── routers/
 │   │   ├── __init__.py
-│   │   └── email.py         # Endpoints para email
+│   │   ├── email.py         # Endpoints para email
+│   │   └── whatsapp.py      # Endpoints para WhatsApp
 │   ├── services/
 │   │   ├── __init__.py
 │   │   └── email_service.py # Lógica de negocio para email
 │   └── schemas/
 │       ├── __init__.py
-│       └── email_schema.py  # Modelos Pydantic
+│       ├── email_schema.py
+│       ├── whatsapp_schema.py
+│       └── error_schemas.py # Esquemas de error reutilizables
+├── tests/
+│   ├── conftest.py          # Fixtures (client, auth_headers, api_v1)
+│   ├── test_main.py
+│   └── test_config.py
+├── docs/
+│   └── postman/             # Colección Postman de ejemplo
 ├── .env                     # Variables de entorno (crear desde env.example)
 ├── env.example              # Ejemplo de configuración
 ├── requirements.txt         # Dependencias del proyecto
-└── README.md               # Este archivo
+└── README.md                # Este archivo
 ```
+
+## 🔐 Autenticación (servicio a servicio)
+
+No hay flujo de login. Quien llama (por ejemplo **api_ofertame**) debe:
+
+1. **Usar la base URL que incluya el prefijo:** `/api/v1`  
+   Ejemplo: `https://api-msj.ejemplo.com/api/v1/email/send`
+
+2. **Enviar en cada petición** a endpoints protegidos uno de estos headers:
+   - **`X-API-Key: <valor de API_MSJ_SECRET>`**
+   - **`Authorization: Bearer <api_key>`** (mismo valor que `API_MSJ_SECRET`)
+
+El valor se compara con la variable de entorno `API_MSJ_SECRET` configurada en api-msj. Si falta el header o no coincide, la API responde **401 Unauthorized**.
+
+En **api_ofertame** (o el cliente): configura en `.env` la misma clave, por ejemplo `API_MSJ_SECRET=tu-clave-compartida`, y envíala en cada petición a api-msj.
 
 ## 🛠️ Instalación
 
 ### 1. Clonar y configurar el entorno
 
 ```bash
-# Crear entorno virtual
 python -m venv venv-api-msj
-
-# Activar entorno virtual
 # Windows:
 venv-api-msj\Scripts\activate
 # Linux/Mac:
 source venv-api-msj/bin/activate
-
-# Desactivar entorno virtual
-deactivate
-
-# Instalar dependencias
 pip install -r requirements.txt
 ```
 
 ### 2. Configurar variables de entorno
 
 ```bash
-# Copiar el archivo de ejemplo
 cp env.example .env
-
-# Editar .env con tus credenciales SMTP
+# Editar .env con credenciales y API_MSJ_SECRET
 ```
 
-### 3. Configurar credenciales SMTP
-
-Edita el archivo `.env` con tus credenciales:
+Variables relevantes en `.env`:
 
 ```env
-# SMTP Configuration
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=tu-email@gmail.com
-SMTP_PASS=tu-contraseña-de-aplicación
-EMAIL_FROM=tu-email@gmail.com
+# Obligatorio para endpoints protegidos (enviar este valor en X-API-Key o Bearer)
+API_MSJ_SECRET=your-shared-secret-here
 
-# Application Configuration
+# Desactivar docs en producción
+ENABLE_OPENAPI_DOCS=True
+
+# SMTP
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+EMAIL_FROM=...
+
+# WhatsApp
+WHATSAPP_TOKEN=...
+WHATSAPP_URL=...
+ACTIVAR_WHATSAPP=True
+
+# App
 APP_NAME=API-MSJ
 APP_VERSION=1.0.0
 DEBUG=True
 ```
 
-**Nota:** Para Gmail, necesitas usar una "Contraseña de aplicación" en lugar de tu contraseña normal.
-
 ## 🚀 Ejecución
 
-### Desarrollo
-
 ```bash
-# Ejecutar con uvicorn
+# Desarrollo
 uvicorn app.main:app --reload --host 0.0.0.0 --port 9000
 
-# O ejecutar directamente
-python -m app.main
-```
-
-### Producción
-
-```bash
-# Ejecutar con uvicorn en modo producción
+# Producción
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 ## 📚 API Endpoints
 
-### Documentación Automática
+### Base URL y versión
 
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
+- **GET /** — Mensaje de bienvenida, prefijo de la API y versión (sin auth):
+  - `api_v1`: `"/api/v1"`
+  - `version`: valor de `APP_VERSION`
+- **GET /health** — Health check global (sin auth)
 
-### Endpoints Principales
+Todos los endpoints de operaciones están bajo **`/api/v1`** y **requieren** el header de API Key (salvo los health de cada recurso).
 
-#### 1. Enviar Email Individual
+### Documentación OpenAPI
+
+Cuando `ENABLE_OPENAPI_DOCS=True` (por defecto):
+
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+- **openapi.json:** `http://localhost:8000/openapi.json`
+
+En producción, pon `ENABLE_OPENAPI_DOCS=false` para desactivar `/docs`, `/redoc` y opcionalmente `/openapi.json`.
+
+### Endpoints principales (todos bajo `/api/v1`)
+
+#### 1. Enviar email individual
+
 ```http
-POST /email/send
+POST /api/v1/email/send
 Content-Type: application/json
+X-API-Key: <valor de API_MSJ_SECRET>
 
 {
   "to": ["destinatario@ejemplo.com"],
@@ -129,98 +160,93 @@ Content-Type: application/json
 }
 ```
 
-#### 2. Enviar Emails en Lote
+#### 2. Enviar emails en lote
+
 ```http
-POST /email/send-bulk
+POST /api/v1/email/send-bulk
 Content-Type: application/json
+X-API-Key: <valor de API_MSJ_SECRET>
 
 [
-  {
-    "to": ["destinatario1@ejemplo.com"],
-    "subject": "Email 1",
-    "body": "Contenido 1"
-  },
-  {
-    "to": ["destinatario2@ejemplo.com"],
-    "subject": "Email 2", 
-    "body": "Contenido 2"
-  }
+  { "to": ["dest1@ejemplo.com"], "subject": "Email 1", "body": "Contenido 1" },
+  { "to": ["dest2@ejemplo.com"], "subject": "Email 2", "body": "Contenido 2" }
 ]
 ```
 
-#### 3. Health Check
+#### 3. Enviar WhatsApp
+
+```http
+POST /api/v1/whatsapp/send-whatsapp
+Content-Type: application/json
+X-API-Key: <valor de API_MSJ_SECRET>
+
+{
+  "telefono": "573001234567",
+  "mensaje": "Texto del mensaje"
+}
+```
+
+#### 4. Health por recurso (sin auth)
+
 ```http
 GET /health
-GET /email/health
+GET /api/v1/email/health
+GET /api/v1/whatsapp/health
 ```
 
-## 🔧 Configuración Avanzada
+## 🧪 Ejemplos de uso
 
-### Integración con Celery (Opcional)
-
-Para habilitar el procesamiento asíncrono con Celery:
-
-1. Descomenta las dependencias en `requirements.txt`:
-```txt
-celery==5.3.4
-redis==5.0.1
-```
-
-2. Configura Redis en `.env`:
-```env
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-```
-
-3. Ejecuta el worker de Celery:
-```bash
-celery -A app.celery_app worker --loglevel=info
-```
-
-## 🧪 Testing
-
-### Ejemplo de uso con curl
+### curl con API Key
 
 ```bash
-# Enviar email simple
-curl -X POST "http://localhost:8000/email/send" \
+# Header X-API-Key
+curl -X POST "http://localhost:8000/api/v1/email/send" \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: your-shared-secret-here" \
   -d '{
     "to": ["test@ejemplo.com"],
     "subject": "Test Email",
     "body": "Este es un email de prueba"
   }'
 
-# Health check
+# Alternativa: Authorization Bearer
+curl -X POST "http://localhost:8000/api/v1/email/send" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-shared-secret-here" \
+  -d '{"to": ["test@ejemplo.com"], "subject": "Test", "body": "Cuerpo"}'
+
+# Health (sin header)
 curl http://localhost:8000/health
+curl http://localhost:8000/
 ```
+
+### Postman
+
+- Importa la colección en `docs/postman/api-msj.postman_collection.json`.
+- Configura la variable de colección `base_url` (ej. `http://localhost:8000`) y `api_key` con el valor de `API_MSJ_SECRET`.
+- Todas las peticiones a `/api/v1/*` usan la URL base y el header de API Key.
+
+## 🧪 Tests
+
+```bash
+pytest tests/ -v
+```
+
+Los tests usan el prefijo `/api/v1` y un header de API Key inyectado por fixture (`conftest.py`). Hay pruebas que verifican 401 cuando falta o es incorrecta la clave.
 
 ## 🔒 Seguridad
 
-- Configura CORS apropiadamente para producción
-- Usa variables de entorno para credenciales sensibles
-- Considera usar HTTPS en producción
-- Implementa autenticación según necesidades
+- Autenticación servicio a servicio por API Key (`X-API-Key` o `Authorization: Bearer`).
+- Configuración sensible (claves, URLs de proveedores) solo desde variables de entorno o `.env`; nada hardcodeado.
+- En producción: `ENABLE_OPENAPI_DOCS=false` para no exponer documentación.
+- CORS y HTTPS según tu entorno de producción.
 
-## 🚀 Próximos Pasos
+## 📋 Resumen para quien integre (api_ofertame)
 
-El microservicio está diseñado para ser extensible. Próximas características:
-
-- **WhatsApp Integration:** Usando APIs como Twilio o WhatsApp Business API
-- **SMS Integration:** Integración con proveedores SMS
-- **Templates:** Sistema de plantillas para emails
-- **Rate Limiting:** Control de límites de envío
-- **Monitoring:** Métricas y logs avanzados
-- **Queue Management:** Sistema de colas para envíos masivos
+- **Base URL:** incluir el prefijo `/api/v1` (ej. `https://api-msj.ejemplo.com/api/v1`).
+- **En cada petición** a api-msj enviar el header de API Key (`X-API-Key: <valor>` o `Authorization: Bearer <valor>`) con el secreto compartido configurado en `.env` (`API_MSJ_SECRET`).
+- No hay flujo de login en api-msj; la autenticación es servicio a servicio por clave.
 
 ## 📝 Licencia
 
 Este proyecto está bajo la licencia MIT.
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request 
