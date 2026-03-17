@@ -65,7 +65,8 @@ class EmailService:
     async def _create_message(self, email_request: EmailRequest, email_id: str) -> MIMEMultipart:
         """Create MIME message from email request."""
         message = MIMEMultipart()
-        message["From"] = formataddr(("API-MSJ", self.email_from))
+        # Mostrar nombre comercial de la app en el remitente
+        message["From"] = formataddr(("OfertaMe", self.email_from))
         message["To"] = ", ".join(email_request.to)
         message["Subject"] = email_request.subject
         message["Message-ID"] = f"<{email_id}@{self.smtp_host}>"

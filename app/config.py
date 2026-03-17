@@ -25,9 +25,9 @@ class Settings(BaseSettings):
     email_from: str
     smtp_validate_certs: bool = True
 
-    # WhatsApp Configuration
-    whatsapp_token: str
-    whatsapp_url: str
+    # WhatsApp Configuration (opcionales: si no se configuran, el envío fallará con mensaje claro)
+    whatsapp_token: Optional[str] = ""
+    whatsapp_url: Optional[str] = ""
     activar_whatsapp: bool = True
 
     # Optional Celery Configuration

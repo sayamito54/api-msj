@@ -33,7 +33,12 @@ async def send_whatsapp(
             success=False,
             message="La funcionalidad de whatsapp esta desactivada"
         )
-    
+    if not settings.whatsapp_token or not settings.whatsapp_url:
+        return WhatsAppResponse(
+            success=False,
+            message="WhatsApp no está configurado (faltan WHATSAPP_TOKEN o WHATSAPP_URL)"
+        )
+
     try:
         # Use v22.0 as per the working documentation
         url = f"https://graph.facebook.com/v22.0/{settings.whatsapp_url}/messages"

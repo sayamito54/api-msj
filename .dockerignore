@@ -1,0 +1,59 @@
+# Variables de entorno (secretos; usar -e o env en runtime)
+.env
+.env.*
+!.env.example
+
+# Entorno virtual
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# Control de versiones
+.git/
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Tests y cobertura (no necesarios en imagen de producción)
+tests/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# Documentación y extras (opcional: reducir tamaño)
+documentacion/
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# IDE y editor
+.vscode/
+.idea/
+.cursor/
+
+# Logs y temporales
+*.log
+.cache/
+
+# Otros
+Dockerfile
+.dockerignore
+*.sqlite3
